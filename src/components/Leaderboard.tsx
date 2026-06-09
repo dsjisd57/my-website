@@ -1,7 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useScores } from '../hooks/useApi';
+import { useState } from 'react';
 import { getLocalScores, addLocalScore } from '../hooks/useLocalStorage';
-import LoadingSpinner from './LoadingSpinner';
 
 interface LeaderboardProps {
   onScoreSaved: () => void;
@@ -10,62 +8,26 @@ interface LeaderboardProps {
 }
 
 const Leaderboard = ({ onScoreSaved, attempts, targetNumber }: LeaderboardProps) => {
-  const { data: apiScores, loading, error, addScore } = useScores();
-  const [localScores, setLocalScores] = useState(getLocalScores);
-  const [usingLocal, setUsingLocal] = useState(false);
+  const [scores, setScores] = useState(getLocalScores);
   const [playerName, setPlayerName] = useState('');
-  const [cachedAttempts, setCachedAttempts] = useState<number | null>(null);
-  const [cachedTarget, setCachedTarget] = useState<number | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (attempts != null && targetNumber != null) {
-      setCachedAttempts(attempts);
-      setCachedTarget(targetNumber);
-    }
-  }, [attempts, targetNumber]);
+  const canSave = attempts != null && targetNumber != null;
 
-  useEffect(() => {
-    if (error) {
-      setUsingLocal(true);
-      setLocalScores(getLocalScores());
-    }
-  }, [error]);
-
-  const scores = usingLocal ? localScores : apiScores;
-  const canSave = cachedAttempts !== null;
-
-  const handleSaveScore = async () => {
-    if (!playerName.trim() || cachedAttempts === null || cachedTarget === null) return;
-    setSubmitting(true);
-    setSubmitError(null);
-    try {
-      if (usingLocal) {
-        addLocalScore(playerName.trim(), cachedAttempts, cachedTarget);
-        setLocalScores(getLocalScores());
-      } else {
-        await addScore(playerName.trim(), cachedAttempts, cachedTarget);
-      }
-      setCachedAttempts(null);
-      setCachedTarget(null);
-      setPlayerName('');
-      onScoreSaved();
-    } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : '發生錯誤');
-    } finally {
-      setSubmitting(false);
-    }
+  const handleSaveScore = () => {
+    if (!playerName.trim() || attempts == null || targetNumber == null) return;
+    addLocalScore(playerName.trim(), attempts, targetNumber);
+    setScores(getLocalScores());
+    setPlayerName('');
+    onScoreSaved();
   };
 
   return (
     <div className="leaderboard">
       <h3>🏆 排行榜</h3>
-      {usingLocal && <p className="api-offline">💾 離線模式：成績儲存在瀏覽器本地</p>}
 
       {canSave && (
         <div className="save-score">
-          <p>🎉 輸入名稱儲存你的成績（{cachedAttempts} 次猜中）！</p>
+          <p>🎉 輸入名稱儲存你的成績（{attempts} 次猜中）！</p>
           <div className="save-score-form">
             <input
               type="text"
@@ -73,19 +35,15 @@ const Leaderboard = ({ onScoreSaved, attempts, targetNumber }: LeaderboardProps)
               value={playerName}
               onChange={e => setPlayerName(e.target.value)}
               maxLength={50}
-              disabled={submitting}
             />
-            <button onClick={handleSaveScore} disabled={submitting || !playerName.trim()}>
-              {submitting ? '儲存中...' : '儲存成績'}
+            <button onClick={handleSaveScore} disabled={!playerName.trim()}>
+              儲存成績
             </button>
           </div>
-          {submitError && <p className="form-error">{submitError}</p>}
         </div>
       )}
 
-      {loading && !usingLocal ? (
-        <LoadingSpinner text="載入排行榜..." />
-      ) : scores && scores.length > 0 ? (
+      {scores.length > 0 ? (
         <table className="score-table">
           <thead>
             <tr>

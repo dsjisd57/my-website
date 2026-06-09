@@ -8,6 +8,7 @@ const MiniGame = () => {
   const [attempts, setAttempts] = useState<number>(0);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [scoreSaved, setScoreSaved] = useState(false);
   const [range, setRange] = useState<[number, number]>([1, 100]);
 
   const startNewGame = useCallback(() => {
@@ -17,6 +18,7 @@ const MiniGame = () => {
     setMessage('請輸入 1-100 之間的數字');
     setAttempts(0);
     setGameOver(false);
+    setScoreSaved(false);
     setRange([1, 100]);
   }, []);
 
@@ -98,9 +100,9 @@ const MiniGame = () => {
 
       {showLeaderboard && (
         <Leaderboard
-          onScoreSaved={() => setShowLeaderboard(true)}
-          attempts={gameOver ? attempts : null}
-          targetNumber={gameOver ? targetNumber : null}
+          onScoreSaved={() => setScoreSaved(true)}
+          attempts={gameOver && !scoreSaved ? attempts : null}
+          targetNumber={gameOver && !scoreSaved ? targetNumber : null}
         />
       )}
     </div>
