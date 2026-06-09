@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useScores } from '../hooks/useApi';
+import { getLocalScores, addLocalScore } from '../hooks/useLocalStorage';
 import LoadingSpinner from './LoadingSpinner';
 
 interface LeaderboardProps {
@@ -9,7 +10,9 @@ interface LeaderboardProps {
 }
 
 const Leaderboard = ({ onScoreSaved, attempts, targetNumber }: LeaderboardProps) => {
-  const { data: scores, loading, error, addScore } = useScores();
+  const { data: apiScores, loading, error, addScore } = useScores();
+  const [localScores, setLocalScores] = useState(getLocalScores);
+  const [usingLocal, setUsingLocal] = useState(false);
   const [playerName, setPlayerName] = useState('');
   const [cachedAttempts, setCachedAttempts] = useState<number | null>(null);
   const [cachedTarget, setCachedTarget] = useState<number | null>(null);
@@ -23,6 +26,14 @@ const Leaderboard = ({ onScoreSaved, attempts, targetNumber }: LeaderboardProps)
     }
   }, [attempts, targetNumber]);
 
+  useEffect(() => {
+    if (error) {
+      setUsingLocal(true);
+      setLocalScores(getLocalScores());
+    }
+  }, [error]);
+
+  const scores = usingLocal ? localScores : apiScores;
   const canSave = cachedAttempts !== null;
 
   const handleSaveScore = async () => {
@@ -30,7 +41,12 @@ const Leaderboard = ({ onScoreSaved, attempts, targetNumber }: LeaderboardProps)
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await addScore(playerName.trim(), cachedAttempts, cachedTarget);
+      if (usingLocal) {
+        addLocalScore(playerName.trim(), cachedAttempts, cachedTarget);
+        setLocalScores(getLocalScores());
+      } else {
+        await addScore(playerName.trim(), cachedAttempts, cachedTarget);
+      }
       setCachedAttempts(null);
       setCachedTarget(null);
       setPlayerName('');
@@ -42,13 +58,10 @@ const Leaderboard = ({ onScoreSaved, attempts, targetNumber }: LeaderboardProps)
     }
   };
 
-  if (error) {
-    return <p className="api-offline">⚠️ 排行榜需要啟動後端伺服器（npm run server）</p>;
-  }
-
   return (
     <div className="leaderboard">
       <h3>🏆 排行榜</h3>
+      {usingLocal && <p className="api-offline">💾 離線模式：成績儲存在瀏覽器本地</p>}
 
       {canSave && (
         <div className="save-score">
@@ -70,7 +83,7 @@ const Leaderboard = ({ onScoreSaved, attempts, targetNumber }: LeaderboardProps)
         </div>
       )}
 
-      {loading ? (
+      {loading && !usingLocal ? (
         <LoadingSpinner text="載入排行榜..." />
       ) : scores && scores.length > 0 ? (
         <table className="score-table">

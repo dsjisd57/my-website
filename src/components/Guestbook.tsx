@@ -1,46 +1,59 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useMessages } from '../hooks/useApi';
+import { getLocalMessages, addLocalMessage } from '../hooks/useLocalStorage';
 import LoadingSpinner from './LoadingSpinner';
 
 const Guestbook = () => {
-  const { data: messages, loading, error, addMessage } = useMessages();
+  const { data: apiMessages, loading, error, addMessage } = useMessages();
+  const [localMessages, setLocalMessages] = useState(getLocalMessages());
+  const [usingLocal, setUsingLocal] = useState(false);
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (error) {
+      setUsingLocal(true);
+      setLocalMessages(getLocalMessages());
+    }
+  }, [error]);
+
+  const messages = usingLocal ? localMessages : apiMessages;
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !message.trim()) return;
     setSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(false);
     try {
-      await addMessage(name.trim(), message.trim());
-      setName('');
-      setMessage('');
-      setSubmitSuccess(true);
-      setTimeout(() => setSubmitSuccess(false), 3000);
+      if (usingLocal) {
+        addLocalMessage(name.trim(), message.trim());
+        setLocalMessages(getLocalMessages());
+        setName('');
+        setMessage('');
+        setSubmitSuccess(true);
+        setTimeout(() => setSubmitSuccess(false), 3000);
+      } else {
+        await addMessage(name.trim(), message.trim());
+        setName('');
+        setMessage('');
+        setSubmitSuccess(true);
+        setTimeout(() => setSubmitSuccess(false), 3000);
+      }
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : '發生錯誤');
     } finally {
       setSubmitting(false);
     }
-  };
-
-  if (error) {
-    return (
-      <div className="section guestbook">
-        <h2>留言板</h2>
-        <p className="api-offline">⚠️ 留言板需要啟動後端伺服器（npm run server）</p>
-      </div>
-    );
-  }
+  }, [name, message, usingLocal, addMessage]);
 
   return (
     <div className="section guestbook">
       <h2>留言板</h2>
+      {usingLocal && <p className="api-offline">💾 離線模式：留言儲存在瀏覽器本地</p>}
 
       <form className="guestbook-form" onSubmit={handleSubmit}>
         <input
@@ -69,7 +82,7 @@ const Guestbook = () => {
       </form>
 
       <div className="guestbook-list">
-        {loading ? (
+        {loading && !usingLocal ? (
           <LoadingSpinner text="載入留言中..." />
         ) : messages && messages.length > 0 ? (
           messages.map(msg => (
