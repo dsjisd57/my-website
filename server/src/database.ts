@@ -4,11 +4,13 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, '..', 'data', 'website.db');
+const dbDir = process.env.DB_PATH || path.join(__dirname, '..', 'data');
+const dbPath = path.join(dbDir, 'website.db');
 
-let db: Database.Database;
+let db: Database.Database | null = null;
 
 function initTables() {
+  if (!db) return;
   db.exec(`
     CREATE TABLE IF NOT EXISTS profile (
       id INTEGER PRIMARY KEY,
@@ -43,15 +45,22 @@ function initTables() {
   }
 }
 
+export function initDb(): void {
+  if (db) return;
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+  db = new Database(dbPath);
+  db.pragma('journal_mode = WAL');
+  initTables();
+}
+
 export function getDb(): Database.Database {
   if (!db) {
-    const dir = path.dirname(dbPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    db = new Database(dbPath);
-    db.pragma('journal_mode = WAL');
-    initTables();
+    initDb();
+  }
+  if (!db) {
+    throw new Error('Database failed to initialize');
   }
   return db;
 }

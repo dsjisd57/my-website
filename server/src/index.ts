@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import apiRouter from './routes/api.js';
+import { getDb, initDb } from './database.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distPath = path.join(__dirname, '..', '..', 'dist');
@@ -10,6 +11,13 @@ const STATIC_PATH = process.env.STATIC_PATH || '/my-website';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+try {
+  initDb();
+  console.log('Database initialized successfully');
+} catch (err) {
+  console.error('Database initialization failed:', err);
+}
 
 app.use(cors());
 app.use(express.json());
