@@ -4,6 +4,9 @@ services:
     env: node
     region: singapore
     plan: free
-    buildCommand: npm ci && npm run build && cd server && npm ci && npm run build
+    buildCommand: VITE_BASE_URL=/ npm ci && VITE_BASE_URL=/ npm run build && cd server && npm ci && npm run build
     startCommand: node server/dist/index.js
+    envVars:
+      - key: STATIC_PATH
+        value: /
     healthCheckPath: /api/health
