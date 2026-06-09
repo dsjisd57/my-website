@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: my-website
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: npm ci && npm run build && cd server && npm ci && npm run build
+    startCommand: node server/dist/index.js
+    healthCheckPath: /api/health
