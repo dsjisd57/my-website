@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   base: '/my-website/',
   server: {
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: 'http://localhost:3001',

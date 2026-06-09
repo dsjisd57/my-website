@@ -1,18 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useScores } from '../hooks/useApi';
 import LoadingSpinner from './LoadingSpinner';
 
 interface LeaderboardProps {
   onScoreSaved: () => void;
+  attempts?: number | null;
+  targetNumber?: number | null;
 }
 
-const Leaderboard = ({ onScoreSaved }: LeaderboardProps) => {
+const Leaderboard = ({ onScoreSaved, attempts, targetNumber }: LeaderboardProps) => {
   const { data: scores, loading, error, addScore } = useScores();
   const [playerName, setPlayerName] = useState('');
   const [cachedAttempts, setCachedAttempts] = useState<number | null>(null);
   const [cachedTarget, setCachedTarget] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (attempts != null && targetNumber != null) {
+      setCachedAttempts(attempts);
+      setCachedTarget(targetNumber);
+    }
+  }, [attempts, targetNumber]);
 
   const canSave = cachedAttempts !== null;
 

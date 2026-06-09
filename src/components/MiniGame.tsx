@@ -8,6 +8,7 @@ const MiniGame = () => {
   const [attempts, setAttempts] = useState<number>(0);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [range, setRange] = useState<[number, number]>([1, 100]);
 
   const startNewGame = useCallback(() => {
     const newNumber = Math.floor(Math.random() * 100) + 1;
@@ -16,6 +17,7 @@ const MiniGame = () => {
     setMessage('請輸入 1-100 之間的數字');
     setAttempts(0);
     setGameOver(false);
+    setRange([1, 100]);
   }, []);
 
   useEffect(() => {
@@ -35,10 +37,16 @@ const MiniGame = () => {
     if (num === targetNumber) {
       setMessage(`🎉 恭喜！你猜對了！答案是 ${targetNumber}，共猜了 ${newAttempts} 次`);
       setGameOver(true);
-    } else if (num < targetNumber) {
-      setMessage(`📈 太小了！再試試看 (已猜 ${newAttempts} 次)`);
     } else {
-      setMessage(`📉 太大了！再試試看 (已猜 ${newAttempts} 次)`);
+      let [lo, hi] = range;
+      if (num < targetNumber && num >= lo) lo = num + 1;
+      if (num > targetNumber && num <= hi) hi = num - 1;
+      setRange([lo, hi]);
+      if (num < targetNumber) {
+        setMessage(`📈 太小了！範圍：${lo} ~ ${hi} (已猜 ${newAttempts} 次)`);
+      } else {
+        setMessage(`📉 太大了！範圍：${lo} ~ ${hi} (已猜 ${newAttempts} 次)`);
+      }
     }
     setGuess('');
   };
@@ -89,7 +97,11 @@ const MiniGame = () => {
       </div>
 
       {showLeaderboard && (
-        <Leaderboard onScoreSaved={() => setShowLeaderboard(true)} />
+        <Leaderboard
+          onScoreSaved={() => setShowLeaderboard(true)}
+          attempts={gameOver ? attempts : null}
+          targetNumber={gameOver ? targetNumber : null}
+        />
       )}
     </div>
   );
